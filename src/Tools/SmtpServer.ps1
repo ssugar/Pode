@@ -86,7 +86,7 @@ function Start-SmtpServer
                 $client = $listener.AcceptTcpClient()
                 $PodeSession.Tcp.Client = $client
                 $PodeSession.Smtp = @{}
-                Invoke-Command -ScriptBlock $process #-ArgumentList $client
+                Invoke-Command -ScriptBlock $process
             }
 
             Test-CtrlCPressed

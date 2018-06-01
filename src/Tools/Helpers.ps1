@@ -132,3 +132,41 @@ function Test-CtrlCPressed
         exit 0
     }
 }
+
+function Get-FileExtension
+{
+    param (
+        [Parameter()]
+        [string]
+        $Path,
+
+        [switch]
+        $TrimPeriod
+    )
+
+    $ext = [System.IO.Path]::GetExtension($Path)
+
+    if ($TrimPeriod) {
+        $ext = $ext.Trim('.')
+    }
+
+    return $ext
+}
+
+function Get-FileName
+{
+    param (
+        [Parameter()]
+        [string]
+        $Path,
+
+        [switch]
+        $WithoutExtension
+    )
+
+    if ($WithoutExtension) {
+        return [System.IO.Path]::GetFileNameWithoutExtension($Path)
+    }
+
+    return [System.IO.Path]::GetFileName($Path)
+}

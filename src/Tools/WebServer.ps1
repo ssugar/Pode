@@ -51,25 +51,49 @@ function Start-WebServer
             }
 
             $context = $task.Result
-            $request = $context.Request
-            $response = $context.Response
+            $session = @{
+                'Request' = $context.Request;
+                'Response' = $context.Response;
+                'Data' = $null;
+                'Query' = $null;
+                'Parameters' = $null;
+                'ViewEngine' = $null;
+                'FilePath' = $null;
+            }
+
+            #$context = $task.Result
+            #$request = $context.Request
+            #$response = $context.Response
 
             # clear session
-            $PodeSession.Web = @{}
-            $PodeSession.Web.Response = $response
-            $PodeSession.Web.Request = $request
+            #$PodeSession.Web = @{}
+            #$PodeSession.Web.Response = $response
+            #$PodeSession.Web.Request = $request
 
             # get url path and method
-            $path = ($request.RawUrl -isplit "\?")[0]
-            $method = $request.HttpMethod.ToLowerInvariant()
+            $close = $true
+            $path = ($session.Request.RawUrl -isplit "\?")[0]
+            $method = $session.Request.HttpMethod.ToLowerInvariant()
 
             # check to see if the path is a file, so we can check the public folder
             if ((Split-Path -Leaf -Path $path).IndexOf('.') -ne -1) {
                 $path = (Join-Path 'public' $path)
-                Write-ToResponseFromFile -Path $path
+
+                if ((Get-FileExtension -Path $path) -ieq '.pode') {
+                    $PodeSession.Web = $session
+                    Write-ToResponseFromFile -Path $path
+                }
+                else {
+                    $close = $false
+                    $session.ViewEngine = $PodeSession.ViewEngine
+                    $session.FilePath = $path
+                    $PodeSession.Sessions.Add($session) | Out-Null
+                }
             }
 
             else {
+                $PodeSession.Web = $session
+
                 # ensure the path has a route
                 $route = Get-PodeRoute -HttpMethod $method -Route $path
                 if ($route -eq $null -or $route.Logic -eq $null) {
@@ -79,12 +103,12 @@ function Start-WebServer
                 # run the scriptblock
                 else {
                     # read and parse any post data
-                    $stream = $request.InputStream
-                    $reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $stream, $request.ContentEncoding
+                    $stream = $session.Request.InputStream
+                    $reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $stream, $session.Request.ContentEncoding
                     $data = $reader.ReadToEnd()
                     $reader.Close()
 
-                    switch ($request.ContentType) {
+                    switch ($session.Request.ContentType) {
                         { $_ -ilike '*json*' } {
                             $data = ($data | ConvertFrom-Json)
                         }
@@ -96,7 +120,7 @@ function Start-WebServer
 
                     # set session data
                     $PodeSession.Web.Data = $data
-                    $PodeSession.Web.Query = $request.QueryString
+                    $PodeSession.Web.Query = $session.Request.QueryString
                     $PodeSession.Web.Parameters = $route.Parameters
 
                     # invoke route
@@ -105,8 +129,8 @@ function Start-WebServer
             }
 
             # close response stream (check if exists, as closing the writer closes this stream on unix)
-            if ($response.OutputStream) {
-                $response.OutputStream.Close()
+            if ($close -and $session.Response.OutputStream) {
+                $session.Response.OutputStream.Close()
             }
         }
     }

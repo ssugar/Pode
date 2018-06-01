@@ -46,7 +46,7 @@ function Write-ToResponseFromFile
     }
 
     # are we dealing with a dynamic file for the view engine?
-    $ext = [System.IO.Path]::GetExtension($Path).Trim('.')
+    $ext = Get-FileExtension -Path $Path -TrimPeriod
     if ((Test-Empty $ext) -or $ext -ine $PodeSession.ViewEngine.Extension) {
         if (Test-IsPSCore) {
             $content = Get-Content -Path $Path -Raw -AsByteStream
@@ -76,7 +76,7 @@ function Write-ToResponseFromFile
         }
     }
 
-    $ext = [System.IO.Path]::GetExtension([System.IO.Path]::GetFileNameWithoutExtension($Path)).Trim('.')
+    $ext = Get-FileExtension -Path (Get-FileName -Path $Path -WithoutExtension) -TrimPeriod
     Write-ToResponse -Value $content -ContentType (Get-PodeContentType -Extension $ext)
 }
 
@@ -300,7 +300,7 @@ function Include
     )
 
     # add view engine extension
-    $ext = [System.IO.Path]::GetExtension($Path)
+    $ext = Get-FileExtension -Path $Path
     $hasExt = ![string]::IsNullOrWhiteSpace($ext)
     if (!$hasExt) {
         $Path += ".$($PodeSession.ViewEngine.Extension)"
@@ -378,7 +378,7 @@ function View
     }
 
     # add view engine extension
-    $ext = [System.IO.Path]::GetExtension($Path)
+    $ext = Get-FileExtension -Path $Path
     $hasExt = ![string]::IsNullOrWhiteSpace($ext)
     if (!$hasExt) {
         $Path += ".$($PodeSession.ViewEngine.Extension)"

@@ -48,6 +48,8 @@ function Server
 
         # start runspace for timers
         Start-TimerRunspace
+        Start-SessionRunspace
+        Start-SessionRunspace
 
         # run logic for a smtp server
         if ($Smtp) {
