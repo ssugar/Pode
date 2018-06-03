@@ -61,34 +61,17 @@ function Start-WebServer
                 'FilePath' = $null;
             }
 
-            #$context = $task.Result
-            #$request = $context.Request
-            #$response = $context.Response
-
-            # clear session
-            #$PodeSession.Web = @{}
-            #$PodeSession.Web.Response = $response
-            #$PodeSession.Web.Request = $request
-
             # get url path and method
             $close = $true
             $path = ($session.Request.RawUrl -isplit "\?")[0]
             $method = $session.Request.HttpMethod.ToLowerInvariant()
 
             # check to see if the path is a file, so we can check the public folder
-            if ((Split-Path -Leaf -Path $path).IndexOf('.') -ne -1) {
-                $path = (Join-Path 'public' $path)
-
-                if ((Get-FileExtension -Path $path) -ieq '.pode') {
-                    $PodeSession.Web = $session
-                    Write-ToResponseFromFile -Path $path
-                }
-                else {
-                    $close = $false
-                    $session.ViewEngine = $PodeSession.ViewEngine
-                    $session.FilePath = $path
-                    $PodeSession.Sessions.Add($session) | Out-Null
-                }
+            if ((Get-PodeContentType -Extension (Get-FileExtension -Path $path) -DefaultIsNull) -ne $null) {
+                $close = $false
+                $session.ViewEngine = $PodeSession.ViewEngine
+                $session.FilePath = (Join-Path 'public' $path)
+                Add-SessionRunspace -Session $session
             }
 
             else {
@@ -109,12 +92,16 @@ function Start-WebServer
                     $reader.Close()
 
                     switch ($session.Request.ContentType) {
-                        { $_ -ilike '*json*' } {
+                        { $_ -ilike '*/json' } {
                             $data = ($data | ConvertFrom-Json)
                         }
 
-                        { $_ -ilike '*xml*' } {
+                        { $_ -ilike '*/xml' } {
                             $data = ($data | ConvertFrom-Xml)
+                        }
+
+                        { $_ -ilike '*/csv' } {
+                            $data = ($data | ConvertFrom-Csv)
                         }
                     }
 
@@ -130,7 +117,19 @@ function Start-WebServer
 
             # close response stream (check if exists, as closing the writer closes this stream on unix)
             if ($close -and $session.Response.OutputStream) {
-                $session.Response.OutputStream.Close()
+                try {
+                    $session.Response.OutputStream.Close()
+                }
+                catch [exception] {
+                    if (Test-ValidNetworkFailure $_.Exception) {
+                        return
+                    }
+
+                    throw $_.Exception
+                }
+                finally {
+                    $session.Response.OutputStream.Dispose()
+                }
             }
         }
     }

@@ -484,3 +484,5 @@ Pode comes with a few helper functions - mostly for writing responses and readin
 * `Test-IsPSCore`
 * `status`
 * `include`
+* `lock`
+* `stopwatch`

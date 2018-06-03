@@ -3,7 +3,10 @@ function Get-PodeContentType
     param (
         [Parameter()]
         [string]
-        $Extension
+        $Extension,
+
+        [switch]
+        $DefaultIsNull
     )
 
     if (!$Extension.StartsWith('.')) {
@@ -625,6 +628,14 @@ function Get-PodeContentType
         '.xwd' { return 'image/x-xwindowdump' }
         '.z' { return 'application/x-compress' }
         '.zip' { return 'application/zip'}
-        default { return 'text/plain' }
+        '.pode' { return 'application/PowerShell' }
+        '.ps1' { return 'application/PowerShell' }
+        default {
+            if ($DefaultIsNull) {
+                return $null
+            }
+
+            return 'text/plain'
+        }
     }
 }

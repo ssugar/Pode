@@ -17,7 +17,7 @@ function New-PodeSession
         Add-Member -MemberType NoteProperty -Name Timers -Value $null -PassThru |
         Add-Member -MemberType NoteProperty -Name RunspacePool -Value $null -PassThru |
         Add-Member -MemberType NoteProperty -Name Runspaces -Value $null -PassThru |
-        Add-Member -MemberType NoteProperty -Name Sessions -Value $null -PassThru |
+        #Add-Member -MemberType NoteProperty -Name Sessions -Value $null -PassThru |
         Add-Member -MemberType NoteProperty -Name CurrentPath -Value $pwd -PassThru
 
     # session engine for rendering views
@@ -49,18 +49,21 @@ function New-PodeSession
     $session.Timers = @{}
 
     # async requests
-    $session.Sessions = New-Object System.Collections.ArrayList
+    #$session.Sessions = New-Object System.Collections.ArrayList
 
     # pode module path
     $modulePath = (Get-Module -Name Pode).Path
 
     # session state
     $state = [initialsessionstate]::CreateDefault()
+    $state.ImportPSModule($modulePath)
+    $counter = 0
+
     $variables = @(
         (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'timers', $session.Timers, $null),
-        (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'sessions', $session.Sessions, $null),
-        (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'module', $modulePath, $null),
-        (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'currentdir', $session.CurrentPath, $null)
+        #(New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'sessions', $session.Sessions, $null),
+        (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'currentdir', $session.CurrentPath, $null),
+        (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'counter', $counter, $null)
     )
 
     $variables | ForEach-Object {
@@ -75,34 +78,45 @@ function New-PodeSession
     return $session
 }
 
-function Start-SessionRunspace
+function Add-SessionRunspace
 {
+    param (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNull()]
+        $Session
+    )
+
     $script = {
-        Import-Module $module
+        param (
+            [Parameter(Mandatory=$true)]
+            $Session
+        )
+
         Set-Location $currentdir
 
-        while ($true)
-        {
-            if (($sessions | Measure-Object).Count -eq 0) {
-                Start-Sleep -Seconds 1
-                continue
+        $PodeSession = @{
+            'Web' = $Session;
+            'ViewEngine' = $Session.ViewEngine;
+        }
+
+        Write-ToResponseFromFile -Path $Session.FilePath
+
+        if ($Session.Response.OutputStream) {
+            try {
+                $Session.Response.OutputStream.Close()
             }
+            catch [exception] {
+                if (Test-ValidNetworkFailure $_.Exception) {
+                    return
+                }
 
-            $s = $sessions[0]
-            $sessions.RemoveAt(0) | Out-Null
-
-            $PodeSession = @{
-                'Web' = $s;
-                'ViewEngine' = $s.ViewEngine;
+                throw $_.Exception
             }
-
-            Write-ToResponseFromFile -Path $s.FilePath
-
-            if ($s.Response.OutputStream) {
-                $s.Response.OutputStream.Close()
+            finally {
+                $Session.Response.OutputStream.Dispose()
             }
         }
     }
 
-    Add-PodeRunspace $script
+    Add-PodeRunspace -ScriptBlock $script -Parameters @{ 'Session' = $Session; }
 }

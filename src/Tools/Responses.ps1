@@ -14,20 +14,35 @@ function Write-ToResponse
         return
     }
 
-    if (!(Test-Empty $ContentType)) {
-        $PodeSession.Web.Response.ContentType = $ContentType
+    $res = $PodeSession.Web.Response
+
+    if ($res -eq $null -or $res.OutputStream -eq $null -or !$res.OutputStream.CanWrite) {
+        return
     }
 
-    if ((Get-Type $Value).Name -ieq 'string') {
-        $writer = New-Object -TypeName System.IO.StreamWriter -ArgumentList $PodeSession.Web.Response.OutputStream
-        $writer.WriteLine([string]$Value)
-        $writer.Close()
+    if (!(Test-Empty $ContentType)) {
+        $res.ContentType = $ContentType
     }
-    else {
-        $memory = New-Object -TypeName System.IO.MemoryStream
-        $memory.Write($Value, 0, $Value.Length)
-        $memory.WriteTo($PodeSession.Web.Response.OutputStream)
-        $memory.Close()
+
+    try {
+        if ((Get-Type $Value).Name -ieq 'string') {
+            $writer = New-Object -TypeName System.IO.StreamWriter -ArgumentList $res.OutputStream
+            $writer.WriteLine([string]$Value)
+            $writer.Flush()
+        }
+        else {
+            $memory = New-Object -TypeName System.IO.MemoryStream
+            $memory.Write($Value, 0, $Value.Length)
+            $memory.WriteTo($res.OutputStream)
+            $memory.Flush()
+        }
+    }
+    catch [exception] {
+        if (Test-ValidNetworkFailure $_.Exception) {
+            return
+        }
+
+        throw $_.Exception
     }
 }
 
