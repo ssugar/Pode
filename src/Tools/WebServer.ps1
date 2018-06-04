@@ -57,7 +57,7 @@ function Start-WebServer
                 'Data' = $null;
                 'Query' = $null;
                 'Parameters' = $null;
-                'ViewEngine' = $null;
+                'ViewEngine' = $PodeSession.ViewEngine;
                 'FilePath' = $null;
             }
 
@@ -69,9 +69,8 @@ function Start-WebServer
             # check to see if the path is a file, so we can check the public folder
             if ((Get-PodeContentType -Extension (Get-FileExtension -Path $path) -DefaultIsNull) -ne $null) {
                 $close = $false
-                $session.ViewEngine = $PodeSession.ViewEngine
                 $session.FilePath = (Join-Path 'public' $path)
-                Add-SessionRunspace -Session $session
+                Add-ContentResponseRunspace -Session $session
             }
 
             else {
@@ -85,25 +84,14 @@ function Start-WebServer
 
                 # run the scriptblock
                 else {
-                    # read and parse any post data
+                    # read any post data
                     $stream = $session.Request.InputStream
                     $reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $stream, $session.Request.ContentEncoding
                     $data = $reader.ReadToEnd()
                     $reader.Close()
 
-                    switch ($session.Request.ContentType) {
-                        { $_ -ilike '*/json' } {
-                            $data = ($data | ConvertFrom-Json)
-                        }
-
-                        { $_ -ilike '*/xml' } {
-                            $data = ($data | ConvertFrom-Xml)
-                        }
-
-                        { $_ -ilike '*/csv' } {
-                            $data = ($data | ConvertFrom-Csv)
-                        }
-                    }
+                    # attempt to parse that data
+                    $data = ConvertFrom-PodeContent -ContentType $session.Request.ContentType -Content $data
 
                     # set session data
                     $PodeSession.Web.Data = $data
@@ -135,7 +123,11 @@ function Start-WebServer
     }
     finally {
         if ($listener -ne $null) {
-            $listener.Stop()
+            if ($listener.IsListening) {
+                $listener.Stop()
+            }
+
+            $listener.Dispose()
         }
     }
 }

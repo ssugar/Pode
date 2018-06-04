@@ -17,7 +17,6 @@ function New-PodeSession
         Add-Member -MemberType NoteProperty -Name Timers -Value $null -PassThru |
         Add-Member -MemberType NoteProperty -Name RunspacePool -Value $null -PassThru |
         Add-Member -MemberType NoteProperty -Name Runspaces -Value $null -PassThru |
-        #Add-Member -MemberType NoteProperty -Name Sessions -Value $null -PassThru |
         Add-Member -MemberType NoteProperty -Name CurrentPath -Value $pwd -PassThru
 
     # session engine for rendering views
@@ -48,9 +47,6 @@ function New-PodeSession
     # async timers
     $session.Timers = @{}
 
-    # async requests
-    #$session.Sessions = New-Object System.Collections.ArrayList
-
     # pode module path
     $modulePath = (Get-Module -Name Pode).Path
 
@@ -61,7 +57,6 @@ function New-PodeSession
 
     $variables = @(
         (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'timers', $session.Timers, $null),
-        #(New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'sessions', $session.Sessions, $null),
         (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'currentdir', $session.CurrentPath, $null),
         (New-Object System.Management.Automation.Runspaces.SessionStateVariableEntry -ArgumentList 'counter', $counter, $null)
     )
@@ -78,7 +73,7 @@ function New-PodeSession
     return $session
 }
 
-function Add-SessionRunspace
+function Add-ContentResponseRunspace
 {
     param (
         [Parameter(Mandatory=$true)]

@@ -255,3 +255,35 @@ function Stopwatch
         Out-Default -InputObject "[Stopwatch]: $($watch.Elapsed) [$($Name)]"
     }
 }
+
+function ConvertFrom-PodeContent
+{
+    param (
+        [Parameter()]
+        [string]
+        $ContentType,
+
+        [Parameter()]
+        $Content
+    )
+
+    if (Test-Empty $Content) {
+        return $Content
+    }
+
+    switch ($ContentType) {
+        { $_ -ilike '*/json' } {
+            $Content = ($Content | ConvertFrom-Json)
+        }
+
+        { $_ -ilike '*/xml' } {
+            $Content = ($Content | ConvertFrom-Xml)
+        }
+
+        { $_ -ilike '*/csv' } {
+            $Content = ($Content | ConvertFrom-Csv)
+        }
+    }
+
+    return $Content
+}
