@@ -116,13 +116,12 @@ function Add-PodeRunspace
 function Close-PodeRunspaces
 {
     $PodeSession.Runspaces | Where-Object { !$_.Stopped } | ForEach-Object {
-        $_.Runspace.Dispose()
+        dispose $_.Runspace
         $_.Stopped = $true
     }
 
     if (!$PodeSession.RunspacePool.IsDisposed) {
-        $PodeSession.RunspacePool.Close()
-        $PodeSession.RunspacePool.Dispose()
+        dispose $PodeSession.RunspacePool -Close
     }
 }
 
@@ -211,6 +210,7 @@ function Lock
         $InputObject,
 
         [Parameter(Mandatory=$true)]
+        [ValidateNotNull()]
         [scriptblock]
         $ScriptBlock
     )
@@ -233,6 +233,63 @@ function Lock
     }
 }
 
+function Stream
+{
+    param (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNull()]
+        [System.IDisposable]
+        $InputObject,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNull()]
+        [scriptblock]
+        $ScriptBlock
+    )
+
+    try {
+        return (Invoke-Command -ScriptBlock $ScriptBlock -ArgumentList $InputObject)
+    }
+    finally {
+        $InputObject.Dispose()
+    }
+}
+
+function Dispose
+{
+    param (
+        [Parameter()]
+        [System.IDisposable]
+        $InputObject,
+
+        [switch]
+        $Close,
+
+        [switch]
+        $CheckNetwork
+    )
+
+    if ($InputObject -eq $null) {
+        return
+    }
+
+    try {
+        if ($Close) {
+            $InputObject.Close()
+        }
+    }
+    catch [exception] {
+        if ($CheckNetwork -and (Test-ValidNetworkFailure $_.Exception)) {
+            return
+        }
+
+        throw $_.Exception
+    }
+    finally {
+        $InputObject.Dispose()
+    }
+}
+
 function Stopwatch
 {
     param (
@@ -242,6 +299,7 @@ function Stopwatch
         $Name,
 
         [Parameter(Mandatory=$true)]
+        [ValidateNotNull()]
         [scriptblock]
         $ScriptBlock
     )

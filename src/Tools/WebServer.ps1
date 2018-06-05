@@ -86,9 +86,11 @@ function Start-WebServer
                 else {
                     # read any post data
                     $stream = $session.Request.InputStream
-                    $reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $stream, $session.Request.ContentEncoding
-                    $data = $reader.ReadToEnd()
-                    $reader.Close()
+
+                    $data = stream ([System.IO.StreamReader]::new($stream, $session.Request.ContentEncoding)) {
+                        param($r)
+                        return $r.ReadToEnd()
+                    }
 
                     # attempt to parse that data
                     $data = ConvertFrom-PodeContent -ContentType $session.Request.ContentType -Content $data
@@ -104,20 +106,8 @@ function Start-WebServer
             }
 
             # close response stream (check if exists, as closing the writer closes this stream on unix)
-            if ($close -and $session.Response.OutputStream) {
-                try {
-                    $session.Response.OutputStream.Close()
-                }
-                catch [exception] {
-                    if (Test-ValidNetworkFailure $_.Exception) {
-                        return
-                    }
-
-                    throw $_.Exception
-                }
-                finally {
-                    $session.Response.OutputStream.Dispose()
-                }
+            if ($close) {
+                dispose $session.Response.OutputStream -Close -CheckNetwork
             }
         }
     }
@@ -127,7 +117,7 @@ function Start-WebServer
                 $listener.Stop()
             }
 
-            $listener.Dispose()
+            dispose $listener
         }
     }
 }

@@ -95,22 +95,7 @@ function Add-ContentResponseRunspace
         }
 
         Write-ToResponseFromFile -Path $Session.FilePath
-
-        if ($Session.Response.OutputStream) {
-            try {
-                $Session.Response.OutputStream.Close()
-            }
-            catch [exception] {
-                if (Test-ValidNetworkFailure $_.Exception) {
-                    return
-                }
-
-                throw $_.Exception
-            }
-            finally {
-                $Session.Response.OutputStream.Dispose()
-            }
-        }
+        dispose $Session.Response.OutputStream -Close -CheckNetwork
     }
 
     Add-PodeRunspace -ScriptBlock $script -Parameters @{ 'Session' = $Session; }
