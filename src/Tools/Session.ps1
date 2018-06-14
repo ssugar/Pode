@@ -17,7 +17,8 @@ function New-PodeSession
         Add-Member -MemberType NoteProperty -Name Timers -Value $null -PassThru |
         Add-Member -MemberType NoteProperty -Name RunspacePool -Value $null -PassThru |
         Add-Member -MemberType NoteProperty -Name Runspaces -Value $null -PassThru |
-        Add-Member -MemberType NoteProperty -Name CurrentPath -Value $pwd -PassThru
+        Add-Member -MemberType NoteProperty -Name CurrentPath -Value $pwd -PassThru |
+        Add-Member -MemberType NoteProperty -Name ResponseSize -Value 0 -PassThru
 
     # session engine for rendering views
     $session.ViewEngine = @{
@@ -122,7 +123,7 @@ function Add-ServerLogRunspace
         $logEntry | Add-Member -MemberType NoteProperty -Name "dateTime" -Value "[$(Get-Date -UFormat "%d/%b/%Y:%H:%M:%S %Z")]"
         $logEntry | Add-Member -MemberType NoteProperty -Name "requestLine" -Value "`"$($Session.Web.Request.HttpMethod) $($Session.Web.Request.RawUrl) HTTP/$($Session.Web.Request.ProtocolVersion)`""
         $logEntry | Add-Member -MemberType NoteProperty -Name "responseStatus" -Value "$($Session.Web.Response.StatusCode)"
-        $logEntry | Add-Member -MemberType NoteProperty -Name "responseLength" -Value "$($Session.Web.Response.ContentLength64)"
+        $logEntry | Add-Member -MemberType NoteProperty -Name "responseLength" -Value "$($Session.ResponseSize)"
         $logEntry | Add-Member -MemberType NoteProperty -Name "requestUrlReferrer" -Value "`"$($Session.Web.Request.UrlReferrer)`""
         $logEntry | Add-Member -MemberType NoteProperty -Name "userAgent" -Value "`"$($Session.Web.Request.UserAgent)`""
 

@@ -16,6 +16,9 @@ function Write-ToResponse
 
     $res = $PodeSession.Web.Response
 
+    #put estimated response size into an aproxsize variable for logging
+    $PodeSession.ResponseSize = [System.Text.Encoding]::UTF8.GetByteCount($Value)
+
     if ($res -eq $null -or $res.OutputStream -eq $null -or !$res.OutputStream.CanWrite) {
         return
     }
