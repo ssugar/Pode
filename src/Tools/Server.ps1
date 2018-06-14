@@ -23,7 +23,10 @@ function Server
         $Tcp,
 
         [switch]
-        $Https
+        $Https,
+
+        [switch]
+        $Log
     )
 
     # if smtp is passed, and no port - force port to 25
@@ -61,7 +64,11 @@ function Server
 
         # if there's a port, run a web server
         elseif ($Port -gt 0) {
-            Start-WebServer -Https:$Https
+            if($Log){
+                Start-WebServer -Https:$Https -Log
+            } else {
+                Start-WebServer -Https:$Https
+            }
         }
 
         # otherwise, run logic

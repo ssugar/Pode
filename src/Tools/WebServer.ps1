@@ -21,7 +21,9 @@ function Start-WebServer
 {
     param (
         [switch]
-        $Https
+        $Https,
+        [switch]
+        $Log
     )
 
     try
@@ -103,6 +105,10 @@ function Start-WebServer
                     # invoke route
                     Invoke-Command -ScriptBlock $route.Logic -ArgumentList $PodeSession.Web
                 }
+            }
+
+            if($Log){
+                Add-ServerLogRunspace -Session $PodeSession
             }
 
             # close response stream (check if exists, as closing the writer closes this stream on unix)

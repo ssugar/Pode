@@ -100,3 +100,31 @@ function Add-ContentResponseRunspace
 
     Add-PodeRunspace -ScriptBlock $script -Parameters @{ 'Session' = $Session; }
 }
+
+function Add-ServerLogRunspace
+{
+    param (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNull()]
+        $Session
+    )
+
+    $script = {
+        param (
+            [Parameter(Mandatory=$true)]
+            $Session
+        )
+
+        $logEntry = New-Object -TypeName PSCustomObject
+        $logEntry | Add-Member -MemberType NoteProperty -Name "clientIP" -Value ($Session.Web.Request.RemoteEndPoint.ToString().Split(':'))[0]
+        $logEntry | Add-Member -MemberType NoteProperty -Name "rfcUserIdentifier" -Value "-"
+        $logEntry | Add-Member -MemberType NoteProperty -Name "userId" -Value "-"
+        $logEntry | Add-Member -MemberType NoteProperty -Name "dateTime" -Value "[$(Get-Date -UFormat "%d/%b/%Y:%H:%M:%S %Z")]"
+        $logEntry | Add-Member -MemberType NoteProperty -Name "requestLine" -Value "`"$($Session.Web.Request.HttpMethod) $($Session.Web.Request.RawUrl) HTTP/$($Session.Web.Request.ProtocolVersion)`""
+        $logEntry | Add-Member -MemberType NoteProperty -Name "responseStatus" -Value "$($Session.Web.Response.StatusCode)"
+        $logEntry | Add-Member -MemberType NoteProperty -Name "responseLength" -Value "$($Session.Web.Response.ContentLength64)"
+
+        write-host "$($logEntry.clientIP) $($logEntry.rfcUserIdentifier) $($logEntry.userId) $($logEntry.dateTime) $($logEntry.requestLine) $($logEntry.responseStatus) $($logEntry.responseLength)"
+    }
+    Add-PodeRunspace -ScriptBlock $script -Parameters @{ 'Session' = $Session; }
+}
