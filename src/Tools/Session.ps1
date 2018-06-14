@@ -123,8 +123,10 @@ function Add-ServerLogRunspace
         $logEntry | Add-Member -MemberType NoteProperty -Name "requestLine" -Value "`"$($Session.Web.Request.HttpMethod) $($Session.Web.Request.RawUrl) HTTP/$($Session.Web.Request.ProtocolVersion)`""
         $logEntry | Add-Member -MemberType NoteProperty -Name "responseStatus" -Value "$($Session.Web.Response.StatusCode)"
         $logEntry | Add-Member -MemberType NoteProperty -Name "responseLength" -Value "$($Session.Web.Response.ContentLength64)"
+        $logEntry | Add-Member -MemberType NoteProperty -Name "requestUrlReferrer" -Value "`"$($Session.Web.Request.UrlReferrer)`""
+        $logEntry | Add-Member -MemberType NoteProperty -Name "userAgent" -Value "`"$($Session.Web.Request.UserAgent)`""
 
-        write-host "$($logEntry.clientIP) $($logEntry.rfcUserIdentifier) $($logEntry.userId) $($logEntry.dateTime) $($logEntry.requestLine) $($logEntry.responseStatus) $($logEntry.responseLength)"
+        write-host "$($logEntry.clientIP) $($logEntry.rfcUserIdentifier) $($logEntry.userId) $($logEntry.dateTime) $($logEntry.requestLine) $($logEntry.responseStatus) $($logEntry.responseLength) $($logEntry.requestUrlReferrer) $($logEntry.userAgent)"
     }
     Add-PodeRunspace -ScriptBlock $script -Parameters @{ 'Session' = $Session; }
 }
